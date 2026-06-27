@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Variables — Potencial de Ignición · Quillón</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --fire-dark:   #6B1A1A;
+      --fire-mid:    #B03A2E;
+      --fire-orange: #E67E22;
+      --forest-dark: #1A3C2B;
+      --forest-mid:  #27AE60;
+      --smoke:       #5D6D7E;
+      --ember:       #E67E22;
+      --gray-bg:     #F5F0EB;
+      --white:       #FFFFFF;
+      --text:        #1C1C1C;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--gray-bg); color: var(--text); line-height: 1.6; }
+
+    header {
+      background: linear-gradient(135deg, #3B0000 0%, #8B2500 55%, #C0392B 100%);
+      color: var(--white); padding: 2.5rem 2rem 2rem;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    header::before {
+      content: ''; position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    header h1 { font-size: 2rem; font-weight: 700; position: relative; }
+    header p  { font-size: 1rem; opacity: .85; margin-top: .4rem; position: relative; }
+    .badge-row { display: flex; gap: .7rem; justify-content: center; margin-top: 1.2rem; flex-wrap: wrap; position: relative; }
+    .badge { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: .3rem .9rem; font-size: .82rem; font-weight: 600; }
+
+    main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .intro-box { background: var(--white); border-left: 5px solid var(--fire-mid); border-radius: 8px; padding: 1.4rem 1.6rem; margin-bottom: 2.5rem; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .intro-box h2 { color: var(--fire-dark); font-size: 1.15rem; margin-bottom: .6rem; }
+
+    .section-title { display: flex; align-items: center; gap: .7rem; margin: 2.5rem 0 1.2rem; }
+    .section-title .icon { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .section-title h2 { font-size: 1.25rem; color: var(--fire-dark); }
+
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.3rem; }
+    .card { background: var(--white); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.08); overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+    .card-header { padding: .85rem 1rem; display: flex; align-items: center; gap: .8rem; }
+    .card-header .emoji { font-size: 1.6rem; }
+    .card-header .name { font-weight: 700; font-size: .95rem; color: var(--white); line-height: 1.3; }
+    .card-header .tag  { font-size: .72rem; color: rgba(255,255,255,.8); margin-top: .1rem; }
+    .card-body { padding: 1rem 1.1rem; flex: 1; }
+    .card-body p { font-size: .88rem; color: #333; margin-bottom: .6rem; }
+
+    .info-row { display: flex; gap: .5rem; align-items: flex-start; font-size: .83rem; margin-bottom: .4rem; }
+    .info-row .lbl { font-weight: 600; color: var(--fire-dark); min-width: 100px; flex-shrink: 0; }
+    .info-row .val { color: #444; }
+
+    .scale-bar { display: flex; gap: 4px; margin: .7rem 0 .3rem; }
+    .scale-bar .step { flex: 1; height: 28px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; color: var(--white); }
+    .scale-bar .step.s1 { background: #27AE60; }
+    .scale-bar .step.s2 { background: #82C341; }
+    .scale-bar .step.s3 { background: #F1C40F; color: #333; }
+    .scale-bar .step.s4 { background: #E67E22; }
+    .scale-bar .step.s5 { background: #C0392B; }
+    .scale-labels { display: flex; justify-content: space-between; font-size: .72rem; color: #666; margin-bottom: .5rem; }
+
+    .dir-badge { display: inline-flex; align-items: center; gap: .3rem; border-radius: 12px; padding: .2rem .6rem; font-size: .78rem; font-weight: 600; margin-top: .4rem; margin-right: .3rem; }
+    .dir-up   { background: #FDEDEC; color: #C0392B; border: 1px solid #F5B7B1; }
+    .dir-down { background: #EBF5FB; color: #2E74B5; border: 1px solid #AED6F1; }
+    .dir-cat  { background: #FEF9E7; color: #E67E22; border: 1px solid #FAD7A0; }
+    .dir-ref  { background: #F0F0F0; color: #5D6D7E; border: 1px solid #BDC3C7; }
+
+    .imp-badge { display: inline-block; border-radius: 12px; padding: .2rem .75rem; font-size: .78rem; font-weight: 700; margin-top: .3rem; margin-right: .3rem; }
+    .imp-maxima   { background: #FDEDEC; color: #922B21; border: 1px solid #F1948A; }
+    .imp-muy-alta { background: #FEF5E7; color: #784212; border: 1px solid #F0B27A; }
+    .imp-alta     { background: #EBF5FB; color: #1A5276; border: 1px solid #7FB3D3; }
+    .imp-media    { background: #F4F6F7; color: #2E4057; border: 1px solid #AAB7B8; }
+    .imp-baja     { background: #F2F3F4; color: #5D6D7E; border: 1px solid #CCD1D1; }
+    .imp-ref      { background: #EAFAF1; color: #1E8449; border: 1px solid #82E0AA; }
+
+    .workflow { background: var(--white); border-radius: 10px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,.08); margin-bottom: 2rem; }
+    .workflow h3 { color: var(--fire-dark); margin-bottom: 1rem; font-size: 1.05rem; }
+    .steps { display: flex; flex-direction: column; }
+    .step-item { display: flex; gap: 1rem; align-items: flex-start; position: relative; padding-bottom: 1.2rem; }
+    .step-item:not(:last-child)::before { content: ''; position: absolute; left: 18px; top: 38px; bottom: 0; width: 2px; background: #F5CBA7; }
+    .step-num { width: 38px; height: 38px; border-radius: 50%; background: var(--fire-mid); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; flex-shrink: 0; position: relative; z-index: 1; }
+    .step-content h4 { color: var(--fire-dark); font-size: .95rem; margin-bottom: .3rem; }
+    .step-content p  { font-size: .87rem; color: #444; }
+    .step-content code { background: #F8F0E3; border: 1px solid #E8D5B7; border-radius: 4px; padding: .1rem .4rem; font-family: 'Courier New', monospace; font-size: .82rem; color: #6B2D00; }
+
+    .formula-box { background: linear-gradient(135deg, #1a0800 0%, #2C0E0E 100%); border-radius: 10px; padding: 1.5rem; margin: 2rem 0; color: var(--white); box-shadow: 0 4px 15px rgba(0,0,0,.25); }
+    .formula-box h3 { color: #F39C12; margin-bottom: 1rem; font-size: 1rem; }
+    .formula { font-family: 'Courier New', monospace; font-size: .82rem; line-height: 1.9; color: #DFE6E9; white-space: pre-wrap; word-break: break-all; }
+    .formula .w  { color: #FDCB6E; font-weight: 700; }
+    .formula .v  { color: #55EFC4; }
+    .formula .op { color: #FD79A8; }
+    .formula .cm { color: #A8C7A0; font-style: italic; }
+
+    .models-container { background: var(--white); border-radius: 10px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,.08); margin-bottom: 2rem; }
+    .model-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.2rem; }
+    .tab-btn { padding: .5rem 1rem; border: 2px solid #DDD; border-radius: 8px; background: var(--white); cursor: pointer; font-size: .83rem; font-weight: 600; color: var(--smoke); transition: all .2s; text-align: center; line-height: 1.4; }
+    .tab-btn:hover { border-color: var(--fire-mid); color: var(--fire-mid); }
+    .tab-btn.active { background: var(--fire-mid); border-color: var(--fire-mid); color: var(--white); }
+    .chart-wrapper { position: relative; height: 300px; }
+    .formula-mini { margin-top: 1.2rem; background: #1a0800; border-radius: 8px; padding: 1rem 1.2rem; font-family: 'Courier New', monospace; font-size: .8rem; color: #DFE6E9; line-height: 1.8; white-space: pre-wrap; word-break: break-all; }
+    .formula-mini .mv { color: #55EFC4; }
+    .formula-mini .mw { color: #FDCB6E; font-weight: 700; }
+    .formula-mini .mo { color: #FD79A8; }
+    .formula-mini .mt { color: #74B9FF; font-weight: 700; }
+
+    .risk-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .risk-table th { background: var(--fire-dark); color: var(--white); padding: .6rem .8rem; text-align: left; }
+    .risk-table td { padding: .55rem .8rem; border-bottom: 1px solid #e8ddd0; }
+    .risk-table tr:nth-child(even) td { background: #FDF6EE; }
+    .risk-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+    .refs-box { background: var(--white); border-left: 5px solid var(--smoke); border-radius: 8px; padding: 1.4rem 1.6rem; margin-top: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .refs-box h3 { color: var(--smoke); font-size: 1rem; margin-bottom: .8rem; }
+    .refs-box ol { padding-left: 1.4rem; }
+    .refs-box li { font-size: .83rem; color: #444; margin-bottom: .45rem; line-height: 1.5; }
+    .refs-box a { color: var(--fire-mid); text-decoration: none; }
+    .refs-box a:hover { text-decoration: underline; }
+
+    .validation-note { background: #EAFAF1; border: 1px dashed #82E0AA; border-radius: 6px; padding: .6rem .9rem; font-size: .83rem; color: #1A5E2A; margin-top: .6rem; }
+
+    .dim-topo  .card-header { background: linear-gradient(135deg, #1A3C6B, #2E74B5); }
+    .dim-cover .card-header { background: linear-gradient(135deg, #1A4D2E, #27AE60); }
+    .dim-spec  .card-header { background: linear-gradient(135deg, #4A1070, #8E44AD); }
+    .dim-nbri  .card-header { background: linear-gradient(135deg, #4A2000, #D35400); }
+    .dim-antro .card-header { background: linear-gradient(135deg, #6B0000, #B03A2E); }
+    .dim-valid .card-header { background: linear-gradient(135deg, #2E4057, #4A637D); }
+
+    footer { text-align: center; padding: 1.5rem; font-size: .82rem; color: #888; border-top: 1px solid #ddd; margin-top: 3rem; }
+
+    @media(max-width:600px){
+      header h1 { font-size: 1.4rem; }
+      .cards-grid { grid-template-columns: 1fr; }
+      .model-tabs { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🔥 Análisis de Potencial de Ignición</h1>
+  <p>Variables Reclasificadas y Modelo Multicriterio · ArcGIS Pro · Quillón, Región de Ñuble</p>
+  <div class="badge-row">
+    <span class="badge">📍 WGS84 / UTM 18S · EPSG:32718</span>
+    <span class="badge">🛰 Sentinel-2 + ALOS PALSAR + Landsat 8/9</span>
+    <span class="badge">📐 Resolución nativa por fuente</span>
+    <span class="badge">📊 Escala 1–5</span>
+    <span class="badge">🔟 Variables ponderadas + 1 validación</span>
+    <span class="badge">🔥 NBRI integrado</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="intro-box">
+    <h2>¿Cómo se usan estas variables?</h2>
+    <p>El modelo integra <strong>10 variables reclasificadas</strong> en escala 1 a 5, donde <strong>5 = muy alto riesgo de ignición</strong> y <strong>1 = riesgo mínimo</strong>. Se incluye una <strong>capa de validación</strong> (especie forestal) para comprobar la concordancia espacial con la cobertura de uso de suelo. La integración se realiza en ArcGIS Pro mediante <strong>Weighted Overlay</strong> (modelo discreto) y <strong>Raster Calculator</strong> con Combinación Lineal Ponderada (modelo continuo). Los pesos fueron determinados mediante el Proceso Analítico Jerárquico (AHP) de Saaty (1990). El resultado identifica y categoriza los sectores de mayor riesgo territorial en la comuna de Quillón.</p>
+  </div>
+
+  <!-- DIMENSIÓN 1 -->
+  <div class="section-title">
+    <div class="icon" style="background:#1A3C6B;">🏔</div>
+    <h2>Dimensión 1 — Topografía</h2>
+  </div>
+  <div class="cards-grid">
+
+    <div class="card dim-topo">
+      <div class="card-header">
+        <div class="emoji">📐</div>
+        <div>
+          <div class="name">SLOPE_RECLAS</div>
+          <div class="tag">Pendiente del terreno · DEM ALOS PALSAR · 12,5 m</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>La pendiente controla la <strong>velocidad de propagación</strong> del fuego: a mayor inclinación, mayor precalentamiento del combustible ladera arriba y mayor velocidad de avance del frente.</p>
+        <div class="scale-bar">
+          <div class="step s1">1</div><div class="step s2">2</div><div class="step s3">3</div><div class="step s4">4</div><div class="step s5">5</div>
+        </div>
+        <div class="scale-labels"><span>0–5°</span><span>5–15°</span><span>15–25°</span><span>25–35°</span><span>>35°</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Slope</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Directa (mayor pendiente → mayor puntaje)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">ALOS PALSAR / JAXA · 12,5 m nativo</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Media-baja — Factor topográfico de propagación del fuego ladera arriba</span></div>
+        <span class="imp-badge imp-media">⚡ Media-baja</span>
+        <span class="dir-badge dir-up">↑ Directa</span>
+      </div>
+    </div>
+
+    <div class="card dim-topo">
+      <div class="card-header">
+        <div class="emoji">🧭</div>
+        <div>
+          <div class="name">ASPECT_Reclas_Quillon</div>
+          <div class="tag">Orientación del terreno · DEM ALOS PALSAR · 12,5 m</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>En el hemisferio sur, las laderas <strong>orientadas al norte y noroeste</strong> reciben mayor radiación solar directa, produciendo combustible más seco y mayor susceptibilidad a la ignición.</p>
+        <div class="scale-bar">
+          <div class="step s1">1</div><div class="step s2">2</div><div class="step s3">3</div><div class="step s4">4</div><div class="step s5">5</div>
+        </div>
+        <div class="scale-labels"><span>Sur</span><span>SE/SO</span><span>E/O</span><span>NE/NO</span><span>Norte</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Aspect</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Categórica por exposición solar</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">ALOS PALSAR / JAXA · 12,5 m nativo</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Secundaria — Factor microclimático que modula la sequedad del combustible</span></div>
+        <span class="imp-badge imp-baja">⬇ Secundaria</span>
+        <span class="dir-badge dir-cat">◈ Categórica</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DIMENSIÓN 2 -->
+  <div class="section-title">
+    <div class="icon" style="background:#1A4D2E;">🌿</div>
+    <h2>Dimensión 2 — Cobertura y Combustible</h2>
+  </div>
+  <div class="cards-grid">
+
+    <div class="card dim-cover">
+      <div class="card-header">
+        <div class="emoji">🗺</div>
+        <div>
+          <div class="name">Reclass_USO_Quillon</div>
+          <div class="tag">Uso y cobertura de suelo · CONAF/CIREN · escala catastro</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>Clasifica el territorio según su <strong>carga y continuidad de combustible</strong>, desde zonas sin combustible (agua, urbano) hasta plantaciones forestales de alta inflamabilidad (pino/eucalipto).</p>
+        <div class="scale-bar">
+          <div class="step s1">1</div><div class="step s2">2</div><div class="step s3">3</div><div class="step s4">4</div><div class="step s5">5</div>
+        </div>
+        <div class="scale-labels"><span>Agua/Urbano</span><span>Agrícola</span><span>Pradera</span><span>Bosque nativo</span><span>Plantación</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Feature to Raster</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Categórica (por tipo de combustible KITRAL)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">CONAF / CIREN — Catastro de uso de suelo</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Media — Define la tipología y carga de combustible disponible</span></div>
+        <span class="imp-badge imp-media">◼ Media</span>
+        <span class="dir-badge dir-cat">◈ Categórica</span>
+      </div>
+    </div>
+
+    <div class="card dim-valid">
+      <div class="card-header">
+        <div class="emoji">✅</div>
+        <div>
+          <div class="name">ESPECIE_Arboles</div>
+          <div class="tag">Catastro forestal · CONAF CBN · escala nativa · [Validación]</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>Registra la especie forestal dominante según el Catastro de Bosque Nativo de CONAF. <strong>No forma parte del modelo ponderado</strong>: se emplea exclusivamente como comprobante de concordancia con <code>Reclass_USO_Quillon</code>.</p>
+        <div class="scale-bar">
+          <div class="step s1">1</div><div class="step s2">2</div><div class="step s3">3</div><div class="step s4">4</div><div class="step s5">5</div>
+        </div>
+        <div class="scale-labels"><span>Sin árbol</span><span>Nativo húmedo</span><span>Nativo seco</span><span>Matorral</span><span>Pino/Eucal.</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Feature to Raster</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Referencial — no se pondera en la fórmula</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">CONAF — Catastro de Bosque Nativo (CBN)</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Referencial — comprobante de coincidencia de datos de entrada</span></div>
+        <div class="validation-note">🔍 <strong>Capa de validación:</strong> La superposición con <em>Reclass_USO_Quillon</em> permite detectar inconsistencias entre el catastro de especies CONAF y la cobertura clasificada, verificando la concordancia de los datos de entrada del modelo.</div>
+        <span class="imp-badge imp-ref">✔ Referencial (validación)</span>
+        <span class="dir-badge dir-ref">◈ No ponderada</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DIMENSIÓN 3 -->
+  <div class="section-title">
+    <div class="icon" style="background:#4A1070;">🛰</div>
+    <h2>Dimensión 3 — Índices Espectrales y Temperatura</h2>
+  </div>
+  <div class="cards-grid">
+
+    <div class="card dim-nbri">
+      <div class="card-header">
+        <div class="emoji">🔥</div>
+        <div>
+          <div class="name">NBRI_Quillon_Reclass</div>
+          <div class="tag">Índice de área quemada · Sentinel-2 B8/B12 · 20 m</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>El <strong>Índice Normalizado de Quema (NBRI)</strong> detecta cicatrices de incendios previos y zonas con historial de perturbación por fuego. Calculado como: <code>(B8 − B12) / (B8 + B12)</code>. Valores muy bajos o negativos indican superficies quemadas recientes con alta probabilidad de reincendio.</p>
+        <div class="scale-bar">
+          <div class="step s5">5</div><div class="step s4">4</div><div class="step s3">3</div><div class="step s2">2</div><div class="step s1">1</div>
+        </div>
+        <div class="scale-labels"><span>Área quemada</span><span>Semiquemada</span><span>Perturbada</span><span>Rec. parcial</span><span>Veg. sana</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Raster Calculator</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Inversa (menor NBRI → mayor historial de quema → mayor puntaje)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">Sentinel-2 MSI (B8 NIR + B12 SWIR-2) · ESA Copernicus · 20 m</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Alta — Antecedente espacial de quema y factor de riesgo de reincendio</span></div>
+        <span class="imp-badge imp-alta">🔥 Alta</span>
+        <span class="dir-badge dir-down">↓ Inversa</span>
+      </div>
+    </div>
+
+    <div class="card dim-spec">
+      <div class="card-header">
+        <div class="emoji">🌱</div>
+        <div>
+          <div class="name">NDVI_Quillon_Reclass</div>
+          <div class="tag">Índice de vegetación · Sentinel-2 B8/B4 · 10 m</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>Cuantifica la <strong>densidad y vitalidad de la biomasa</strong>. En período estival, valores medios-altos indican mayor combustible disponible. Calculado como: <code>(B8 − B4) / (B8 + B4)</code></p>
+        <div class="scale-bar">
+          <div class="step s1">1</div><div class="step s2">2</div><div class="step s3">3</div><div class="step s4">4</div><div class="step s5">5</div>
+        </div>
+        <div class="scale-labels"><span>Sin vegetación</span><span>Escasa</span><span>Moderada</span><span>Densa</span><span>Muy densa</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Raster Calculator</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Directa (mayor biomasa → mayor combustible disponible)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">Sentinel-2 MSI (B8 + B4) · ESA Copernicus · 10 m nativo</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Alta — Cuantificación de carga de combustible vivo en período estival</span></div>
+        <span class="imp-badge imp-alta">📈 Alta</span>
+        <span class="dir-badge dir-up">↑ Directa</span>
+      </div>
+    </div>
+
+    <div class="card dim-spec">
+      <div class="card-header">
+        <div class="emoji">💧</div>
+        <div>
+          <div class="name">NDMI_Quillon_Reclass</div>
+          <div class="tag">Humedad vegetal · Sentinel-2 B8/B11 · 20 m</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>Mide el <strong>contenido de agua en la hoja</strong>. Valores bajos o negativos en verano indican vegetación con bajo contenido hídrico, aumentando la susceptibilidad a la ignición. <code>(B8 − B11) / (B8 + B11)</code></p>
+        <div class="scale-bar">
+          <div class="step s5">5</div><div class="step s4">4</div><div class="step s3">3</div><div class="step s2">2</div><div class="step s1">1</div>
+        </div>
+        <div class="scale-labels"><span>NDMI muy bajo</span><span></span><span>Moderado</span><span></span><span>NDMI alto</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Raster Calculator</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Inversa (menor humedad foliar → mayor puntaje)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">Sentinel-2 MSI (B8 + B11 SWIR-1) · ESA Copernicus · 20 m</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Alta — Estado hídrico foliar, indicador directo de inflamabilidad estival</span></div>
+        <span class="imp-badge imp-alta">💧 Alta</span>
+        <span class="dir-badge dir-down">↓ Inversa</span>
+      </div>
+    </div>
+
+    <div class="card dim-spec">
+      <div class="card-header">
+        <div class="emoji">🌡</div>
+        <div>
+          <div class="name">MSI_Quillon_Reclass</div>
+          <div class="tag">Estrés hídrico · Sentinel-2 B11/B8 · 20 m</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>Complementa al NDMI: mayor MSI = mayor <strong>estrés hídrico de la vegetación</strong> = mayor combustibilidad. Calculado como: <code>B11 / B8</code>. A diferencia del NDMI, la relación con el riesgo es directa.</p>
+        <div class="scale-bar">
+          <div class="step s1">1</div><div class="step s2">2</div><div class="step s3">3</div><div class="step s4">4</div><div class="step s5">5</div>
+        </div>
+        <div class="scale-labels"><span>Sin estrés</span><span>Leve</span><span>Moderado</span><span>Alto</span><span>Crítico</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Raster Calculator</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Directa (mayor estrés hídrico → mayor puntaje)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">Sentinel-2 MSI (B11 + B8) · ESA Copernicus · 20 m</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Alta — Combustibilidad de la vegetación, complemento directo del NDMI</span></div>
+        <span class="imp-badge imp-alta">⚠ Alta</span>
+        <span class="dir-badge dir-up">↑ Directa</span>
+      </div>
+    </div>
+
+    <div class="card dim-spec">
+      <div class="card-header">
+        <div class="emoji">☀️</div>
+        <div>
+          <div class="name">LST_Verano</div>
+          <div class="tag">Temperatura superficial · Landsat 8/9 Banda 10 · 30 m</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>Mayor temperatura superficial estival indica mayor <strong>estrés hídrico en el suelo y la vegetación</strong>. Promedio de máximas de diciembre a marzo. Condición estructural que favorece directamente la ignición.</p>
+        <div class="scale-bar">
+          <div class="step s1">1</div><div class="step s2">2</div><div class="step s3">3</div><div class="step s4">4</div><div class="step s5">5</div>
+        </div>
+        <div class="scale-labels"><span><20°C</span><span>20–25°C</span><span>25–30°C</span><span>30–35°C</span><span>>35°C</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Banda 10 → LST</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Directa (mayor temperatura → mayor puntaje)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">Landsat 8/9 OLI-TIRS (Banda 10 TIR) · USGS · 30 m nativo</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Muy alta — Variable climática estructural que sintetiza aridez y precalentamiento</span></div>
+        <span class="imp-badge imp-muy-alta">🌡 Muy alta</span>
+        <span class="dir-badge dir-up">↑ Directa</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DIMENSIÓN 4 -->
+  <div class="section-title">
+    <div class="icon" style="background:#6B0000;">🏘</div>
+    <h2>Dimensión 4 — Factores Antrópicos</h2>
+  </div>
+  <div class="cards-grid">
+
+    <div class="card dim-antro">
+      <div class="card-header">
+        <div class="emoji">🛣</div>
+        <div>
+          <div class="name">Distancia_Camino_Reclass</div>
+          <div class="tag">Distancia a red vial · MOP/IDE Chile 2024 · resolución nativa</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>La proximidad a caminos concentra la actividad humana y <strong>aumenta la probabilidad de ignición antrópica</strong>. CONAF (2024) documenta que el 99,7% de los incendios forestales en Chile son de origen humano.</p>
+        <div class="scale-bar">
+          <div class="step s5">5</div><div class="step s4">4</div><div class="step s3">3</div><div class="step s2">2</div><div class="step s1">1</div>
+        </div>
+        <div class="scale-labels"><span>0–100 m</span><span>100–500 m</span><span>500 m–1 km</span><span>1–2 km</span><span>>2 km</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Euclidean Distance</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Inversa (menor distancia → mayor puntaje)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">MOP / IDE Chile — Red vial nacional 2024</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Alta — Factor de ignición antrópica por accesibilidad al territorio</span></div>
+        <span class="imp-badge imp-alta">🛣 Alta</span>
+        <span class="dir-badge dir-down">↓ Inversa</span>
+      </div>
+    </div>
+
+    <div class="card dim-antro">
+      <div class="card-header">
+        <div class="emoji">🏡</div>
+        <div>
+          <div class="name">Distans_Urbano_Rural_Reclass</div>
+          <div class="tag">Distancia a interfaz urbano-rural · INE/IDE Chile · resolución nativa</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p>La <strong>interfaz urbano-forestal-rural (IUF)</strong> concentra el mayor riesgo combinado: alta exposición de personas, mayor probabilidad de ignición antrópica y mayor dificultad de extinción. Variable de máximo peso en el modelo.</p>
+        <div class="scale-bar">
+          <div class="step s5">5</div><div class="step s4">4</div><div class="step s3">3</div><div class="step s2">2</div><div class="step s1">1</div>
+        </div>
+        <div class="scale-labels"><span>0–100 m</span><span>100–500 m</span><span>500 m–1 km</span><span>1–2 km</span><span>>2 km</span></div>
+        <div class="info-row"><span class="lbl">Herramienta</span><span class="val"><code>Euclidean Distance</code> → <code>Reclassify</code></span></div>
+        <div class="info-row"><span class="lbl">Dirección</span><span class="val">Inversa (menor distancia → mayor puntaje)</span></div>
+        <div class="info-row"><span class="lbl">Fuente</span><span class="val">INE / IDE Chile — Límites urbanos y localidades rurales</span></div>
+        <div class="info-row"><span class="lbl">Importancia</span><span class="val">Máxima — Factor dominante de exposición y riesgo combinado en interfaz</span></div>
+        <span class="imp-badge imp-maxima">⚡ Máxima</span>
+        <span class="dir-badge dir-down">↓ Inversa</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- WORKFLOW -->
+  <div class="section-title">
+    <div class="icon" style="background:#2C3E50;">⚙️</div>
+    <h2>Flujo de Trabajo en ArcGIS Pro</h2>
+  </div>
+  <div class="workflow">
+    <h3>Pasos para integrar las variables en el modelo multicriterio</h3>
+    <div class="steps">
+
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Filtrado, Reproyección y Preparación de Capas</h4>
+          <p>Cada capa fue <strong>recortada al límite comunal de Quillón</strong> (SUBDERE 2023) mediante <code>Extract by Mask</code>, eliminando datos fuera del área de estudio. Todas las capas fueron <strong>reproyectadas a WGS84/UTM Zona 18S (EPSG:32718)</strong> usando <code>Project Raster</code> para rásteres y <code>Project</code> para vectores. Se <strong>mantuvo la resolución espacial nativa de cada fuente</strong>: ALOS PALSAR (12,5 m), Sentinel-2 (10 m en bandas visibles/NIR, 20 m en SWIR), Landsat 8/9 (30 m). Las capas vectoriales de CONAF, MOP e INE fueron convertidas a ráster conservando su escala cartográfica original mediante <code>Feature to Raster</code>. Se aplicó filtrado de celdas sin datos (<code>NoData</code>) y corrección de bordes para eliminar artefactos de escena en imágenes satelitales.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Verificación de capas reclasificadas y comprobante de concordancia</h4>
+          <p>Abrir cada capa en ArcGIS Pro y verificar: rango de valores 1–5, SRC = <code>EPSG:32718</code>. Usar <code>Raster Properties → Statistics</code> para confirmar Min=1, Max=5. Superponer visualmente <code>ESPECIE_Arboles</code> con <code>Reclass_USO_Quillon</code> para comprobar la concordancia entre el catastro de especies CONAF y la cobertura clasificada.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Modelo Discreto — Weighted Overlay</h4>
+          <p>Ir a Toolboxes → Spatial Analyst → Overlay → <code>Weighted Overlay</code>. Añadir las 10 capas ponderadas, asignar los pesos AHP y confirmar escala de evaluación 1–5. La capa de validación (<code>ESPECIE_Arboles</code>) no se incluye en este modelo ponderado.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Modelo Continuo — Raster Calculator (CLP)</h4>
+          <p>Ir a Toolboxes → Spatial Analyst → Map Algebra → <code>Raster Calculator</code>. Ingresar la fórmula de Combinación Lineal Ponderada con los pesos de cada capa (ver sección de fórmula). El resultado es un ráster continuo de potencial de ignición.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">5</div>
+        <div class="step-content">
+          <h4>Categorizar el resultado final</h4>
+          <p>Aplicar <code>Reclassify</code> al resultado del Raster Calculator dividiéndolo en 5 clases (Muy Bajo / Bajo / Moderado / Alto / Muy Alto) usando Natural Breaks (Jenks) o cuantiles para comparar con el Weighted Overlay.</p>
+        </div>
+      </div>
+
+      <div class="step-item">
+        <div class="step-num">6</div>
+        <div class="step-content">
+          <h4>Documentar en ModelBuilder</h4>
+          <p>Abrir un nuevo <code>Model</code> en ArcGIS Pro e incorporar todos los pasos como herramientas encadenadas. Guardar el modelo como <code>.tbx</code> en la carpeta <code>05_ModelBuilder/</code> del proyecto.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FÓRMULA FINAL -->
+  <div class="formula-box">
+    <h3>📐 Fórmula Final — Raster Calculator (Combinación Lineal Ponderada)</h3>
+    <div class="formula">
+<span class="v">Potencial_Ignicion</span> <span class="op">=</span>
+
+  (<span class="v">SLOPE_RECLAS</span>                <span class="op">*</span> <span class="w">0.030</span>)  <span class="op">+</span>
+  (<span class="v">ASPECT_Reclas_Quillon</span>          <span class="op">*</span> <span class="w">0.005</span>)  <span class="op">+</span>
+  (<span class="v">Reclass_USO_Quillon</span>            <span class="op">*</span> <span class="w">0.050</span>)  <span class="op">+</span>
+  (<span class="v">NBRI_Quillon_Reclass</span>           <span class="op">*</span> <span class="w">0.090</span>)  <span class="op">+</span>
+  (<span class="v">NDVI_Quillon_Reclass</span>           <span class="op">*</span> <span class="w">0.100</span>)  <span class="op">+</span>
+  (<span class="v">NDMI_Quillon_Reclass</span>           <span class="op">*</span> <span class="w">0.080</span>)  <span class="op">+</span>
+  (<span class="v">MSI_Quillon_Reclass</span>            <span class="op">*</span> <span class="w">0.090</span>)  <span class="op">+</span>
+  (<span class="v">LST_Verano</span>                     <span class="op">*</span> <span class="w">0.220</span>)  <span class="op">+</span>
+  (<span class="v">Distancia_Camino_Reclass</span>       <span class="op">*</span> <span class="w">0.110</span>)  <span class="op">+</span>
+  (<span class="v">Distans_Urbano_Rural_Reclass</span>   <span class="op">*</span> <span class="w">0.225</span>)
+
+<span class="cm">-- ESPECIE_Arboles: capa de validación, no se pondera --
+-- Suma de pesos = 1.000 --</span>
+    </div>
+    <p style="font-size:.8rem;opacity:.65;margin-top:.8rem;">Variables en verde · Pesos en amarillo · Suma de pesos = 1,000 · Resultado: ráster continuo de potencial de ignición (rango ~1–5)</p>
+  </div>
+
+  <!-- MODELOS ITERATIVOS -->
+  <div class="section-title">
+    <div class="icon" style="background:#1A3C6B;">📊</div>
+    <h2>Iteraciones AHP — Modelos Preliminares y Modelo Final</h2>
+  </div>
+  <div class="models-container">
+    <p style="font-size:.88rem;color:#555;margin-bottom:1rem;">Las siguientes iteraciones corresponden al proceso de calibración mediante el Proceso Analítico Jerárquico (AHP/SAATY) previo a la selección del modelo final integrado. Seleccione un modelo para visualizar la distribución de pesos y su código de Raster Calculator.</p>
+    <div class="model-tabs">
+      <button class="tab-btn active" onclick="showModel(0)">Modelo A<br><small>5 vars. simplificado</small></button>
+      <button class="tab-btn" onclick="showModel(1)">Modelo B<br><small>9 vars. completo</small></button>
+      <button class="tab-btn" onclick="showModel(2)">Modelo C<br><small>5 vars. espectral</small></button>
+      <button class="tab-btn" onclick="showModel(3)">Modelo D<br><small>7 vars. antrópico</small></button>
+      <button class="tab-btn" onclick="showModel(4)">Modelo Final<br><small>10 vars. integrado</small></button>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="modelChart"></canvas>
+    </div>
+    <div id="model-formula" class="formula-mini"></div>
+  </div>
+
+  <!-- TABLA RESUMEN -->
+  <div class="section-title">
+    <div class="icon" style="background:#2C3E50;">📋</div>
+    <h2>Resumen de Variables e Importancia</h2>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="risk-table">
+      <thead>
+        <tr>
+          <th>Variable</th>
+          <th>Dimensión</th>
+          <th>Dirección</th>
+          <th>Escala 1–5</th>
+          <th>Importancia en el estudio</th>
+          <th>Rol en el modelo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Distans_Urbano_Rural_Reclass</td>
+          <td>Antrópica</td>
+          <td>↓ Inversa</td>
+          <td>5 = cerca de interfaz</td>
+          <td><strong>Máxima</strong></td>
+          <td>Factor dominante de ignición y exposición de comunidades</td>
+        </tr>
+        <tr>
+          <td>LST_Verano</td>
+          <td>Espectral/Térmica</td>
+          <td>↑ Directa</td>
+          <td>5 = >35°C</td>
+          <td><strong>Muy alta</strong></td>
+          <td>Variable climática estructural de mayor relevancia térmica</td>
+        </tr>
+        <tr>
+          <td>Distancia_Camino_Reclass</td>
+          <td>Antrópica</td>
+          <td>↓ Inversa</td>
+          <td>5 = 0–100 m</td>
+          <td><strong>Alta</strong></td>
+          <td>Factor de ignición antrópica por accesibilidad vial</td>
+        </tr>
+        <tr>
+          <td>NDVI_Quillon_Reclass</td>
+          <td>Espectral</td>
+          <td>↑ Directa</td>
+          <td>5 = mayor biomasa</td>
+          <td><strong>Alta</strong></td>
+          <td>Factor de carga de combustible vivo estival</td>
+        </tr>
+        <tr>
+          <td>NBRI_Quillon_Reclass</td>
+          <td>Espectral</td>
+          <td>↓ Inversa</td>
+          <td>5 = área quemada reciente</td>
+          <td><strong>Alta</strong></td>
+          <td>Antecedente espacial de quema y factor de reincendio</td>
+        </tr>
+        <tr>
+          <td>MSI_Quillon_Reclass</td>
+          <td>Espectral</td>
+          <td>↑ Directa</td>
+          <td>5 = estrés hídrico máximo</td>
+          <td><strong>Alta</strong></td>
+          <td>Factor de combustibilidad por estrés hídrico</td>
+        </tr>
+        <tr>
+          <td>NDMI_Quillon_Reclass</td>
+          <td>Espectral</td>
+          <td>↓ Inversa</td>
+          <td>5 = menor humedad foliar</td>
+          <td><strong>Alta</strong></td>
+          <td>Factor de estado hídrico del combustible</td>
+        </tr>
+        <tr>
+          <td>Reclass_USO_Quillon</td>
+          <td>Cobertura</td>
+          <td>◈ Categórica</td>
+          <td>5 = plantación pino/eucalipto</td>
+          <td><strong>Media</strong></td>
+          <td>Factor de tipología y carga de combustible</td>
+        </tr>
+        <tr>
+          <td>SLOPE_RECLAS</td>
+          <td>Topografía</td>
+          <td>↑ Directa</td>
+          <td>5 = >35°</td>
+          <td><strong>Media-baja</strong></td>
+          <td>Factor topográfico de propagación</td>
+        </tr>
+        <tr>
+          <td>ASPECT_Reclas_Quillon</td>
+          <td>Topografía</td>
+          <td>◈ Categórica</td>
+          <td>5 = orientación Norte</td>
+          <td><strong>Secundaria</strong></td>
+          <td>Factor microclimático de exposición solar</td>
+        </tr>
+        <tr style="background:#EAFAF1 !important;">
+          <td><em>ESPECIE_Arboles</em></td>
+          <td>Validación</td>
+          <td>◈ Referencial</td>
+          <td>5 = especie exótica</td>
+          <td><strong>✔ Referencial</strong></td>
+          <td>Comprobante de concordancia de datos (no ponderada)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TABLA RIESGO -->
+  <div class="section-title">
+    <div class="icon" style="background:#B03A2E;">🗺</div>
+    <h2>Interpretación del Resultado Final</h2>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="risk-table">
+      <thead>
+        <tr>
+          <th>Categoría</th>
+          <th>Puntaje Final</th>
+          <th>Color sugerido</th>
+          <th>Interpretación territorial</th>
+          <th>Recomendación de gestión</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="risk-dot" style="background:#27AE60"></span>Muy Bajo</td>
+          <td>1,0 – 1,8</td>
+          <td>Verde oscuro</td>
+          <td>Zonas de baja combustibilidad, lejos de infraestructura</td>
+          <td>Monitoreo estándar</td>
+        </tr>
+        <tr>
+          <td><span class="risk-dot" style="background:#82C341"></span>Bajo</td>
+          <td>1,8 – 2,6</td>
+          <td>Verde claro</td>
+          <td>Áreas con algunas condiciones favorables, no críticas</td>
+          <td>Vigilancia periódica</td>
+        </tr>
+        <tr>
+          <td><span class="risk-dot" style="background:#F1C40F"></span>Moderado</td>
+          <td>2,6 – 3,4</td>
+          <td>Amarillo</td>
+          <td>Combinación de factores con riesgo medio, interfaz presente</td>
+          <td>Cortafuegos preventivos</td>
+        </tr>
+        <tr>
+          <td><span class="risk-dot" style="background:#E67E22"></span>Alto</td>
+          <td>3,4 – 4,2</td>
+          <td>Naranja</td>
+          <td>Alta carga de combustible + condición térmica desfavorable</td>
+          <td>Plan de evacuación y brigadas</td>
+        </tr>
+        <tr>
+          <td><span class="risk-dot" style="background:#C0392B"></span>Muy Alto</td>
+          <td>4,2 – 5,0</td>
+          <td>Rojo</td>
+          <td>Interfaz crítica + plantaciones + alta temperatura + pendiente</td>
+          <td>Prioridad máxima de intervención</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- REFERENCIAS -->
+  <div class="section-title">
+    <div class="icon" style="background:#5D6D7E;">📚</div>
+    <h2>Referencias Bibliográficas</h2>
+  </div>
+  <div class="refs-box">
+    <h3>Fuentes citadas y metodología</h3>
+    <ol>
+      <li>Key, C.H. & Benson, N.C. (2006). <em>Landscape Assessment (LA): Sampling and Analysis Methods</em>. FIREMON: Fire Effects Monitoring and Inventory System. Gen. Tech. Rep. RMRS-GTR-164. USDA Forest Service. <a href="https://www.fs.usda.gov/rm/pubs/rmrs_gtr164.html" target="_blank">https://www.fs.usda.gov/rm/pubs/rmrs_gtr164.html</a></li>
+      <li>Miller, J.D. & Thode, A.E. (2007). Quantifying burn severity in a heterogeneous landscape with a relative version of the delta Normalized Burn Ratio (dNBR). <em>Remote Sensing of Environment</em>, 109(1), 66–80. <a href="https://doi.org/10.1016/j.rse.2006.12.006" target="_blank">https://doi.org/10.1016/j.rse.2006.12.006</a></li>
+      <li>Chuvieco, E., Aguado, I., Yebra, M., Nieto, H., Salas, J., Martín, M.P. & Zamora, R. (2010). Development of a framework for fire risk assessment using remote sensing and GIS. <em>Ecological Modelling</em>, 221(1), 46–58. <a href="https://doi.org/10.1016/j.ecolmodel.2008.11.017" target="_blank">https://doi.org/10.1016/j.ecolmodel.2008.11.017</a></li>
+      <li>Saaty, T.L. (1990). How to make a decision: The Analytic Hierarchy Process. <em>European Journal of Operational Research</em>, 48(1), 9–26. <a href="https://doi.org/10.1016/0377-2217(90)90057-I" target="_blank">https://doi.org/10.1016/0377-2217(90)90057-I</a></li>
+      <li>CONAF (2024). <em>Estadísticas de ocurrencia de incendios forestales en Chile</em>. Corporación Nacional Forestal. <a href="https://www.conaf.cl/incendios-forestales/estadisticas/" target="_blank">https://www.conaf.cl/incendios-forestales/estadisticas/</a></li>
+      <li>ESA Copernicus (2023). <em>Sentinel-2 MSI User Handbook</em>. European Space Agency. <a href="https://sentinel.esa.int/documents/247904/685211/Sentinel-2_User_Handbook" target="_blank">https://sentinel.esa.int/documents/247904/685211/Sentinel-2_User_Handbook</a></li>
+      <li>JAXA (2023). <em>ALOS PALSAR Product Format Description</em>. Japan Aerospace Exploration Agency. <a href="https://www.eorc.jaxa.jp/ALOS/en/dataset/palsar_fnf_e.htm" target="_blank">https://www.eorc.jaxa.jp/ALOS/en/dataset/palsar_fnf_e.htm</a></li>
+      <li>USGS (2023). <em>Landsat Collection 2 Level-2 Science Product Guide</em>. U.S. Geological Survey. <a href="https://www.usgs.gov/landsat-missions/landsat-collection-2-level-2-science-products" target="_blank">https://www.usgs.gov/landsat-missions/landsat-collection-2-level-2-science-products</a></li>
+    </ol>
+  </div>
+
+</main>
+
+<footer>
+  Análisis de Datos Espaciales · Evaluación Sumativa N°2 · Ingeniería en Geomensura y Geomática · INACAP La Serena<br>
+  Comuna de Quillón, Región de Ñuble · WGS84/UTM 18S (EPSG:32718) · Variables: SLOPE, ASPECT, USO, ESPECIE (validación), NBRI, NDVI, NDMI, MSI, LST, Dist_Caminos, Dist_Interfaz
+</footer>
+
+<script>
+const models = [
+  {
+    name: 'Modelo A — Simplificado (5 variables)',
+    labels: ['NBRI','Uso Suelo','Slope','Aspect','LST'],
+    weights: [19,21,20,20,20],
+    colors: ['#D35400','#27AE60','#2E74B5','#5D6D7E','#C0392B'],
+    formula:
+`<span class="mt">// MODELO A — Simplificado (5 variables) · Suma = 100%</span>
+<span class="mv">Ignicion_A</span> <span class="mo">=</span>
+  (<span class="mv">NBRI_Quillon_Reclass</span>      <span class="mo">*</span> <span class="mw">0.19</span>) <span class="mo">+</span>
+  (<span class="mv">Reclass_USO_Quillon</span>       <span class="mo">*</span> <span class="mw">0.21</span>) <span class="mo">+</span>
+  (<span class="mv">SLOPE_RECLAS</span>              <span class="mo">*</span> <span class="mw">0.20</span>) <span class="mo">+</span>
+  (<span class="mv">ASPECT_Reclas_Quillon</span>     <span class="mo">*</span> <span class="mw">0.20</span>) <span class="mo">+</span>
+  (<span class="mv">LST_Verano</span>                <span class="mo">*</span> <span class="mw">0.20</span>)`
+  },
+  {
+    name: 'Modelo B — Completo (9 variables)',
+    labels: ['Dist. Urbana','Dist. Caminos','Uso Suelo','Slope','Aspect','NDVI','MSI','NDMI','LST'],
+    weights: [12,11,5,8,5,10,11,13,25],
+    colors: ['#B03A2E','#E67E22','#27AE60','#2E74B5','#5D6D7E','#1ABC9C','#8E44AD','#3498DB','#C0392B'],
+    formula:
+`<span class="mt">// MODELO B — Completo (9 variables) · Suma = 100%</span>
+<span class="mv">Ignicion_B</span> <span class="mo">=</span>
+  (<span class="mv">Distans_Urbano_Rural_Reclass</span> <span class="mo">*</span> <span class="mw">0.12</span>) <span class="mo">+</span>
+  (<span class="mv">Distancia_Camino_Reclass</span>     <span class="mo">*</span> <span class="mw">0.11</span>) <span class="mo">+</span>
+  (<span class="mv">Reclass_USO_Quillon</span>          <span class="mo">*</span> <span class="mw">0.05</span>) <span class="mo">+</span>
+  (<span class="mv">SLOPE_RECLAS</span>                 <span class="mo">*</span> <span class="mw">0.08</span>) <span class="mo">+</span>
+  (<span class="mv">ASPECT_Reclas_Quillon</span>        <span class="mo">*</span> <span class="mw">0.05</span>) <span class="mo">+</span>
+  (<span class="mv">NDVI_Quillon_Reclass</span>         <span class="mo">*</span> <span class="mw">0.10</span>) <span class="mo">+</span>
+  (<span class="mv">MSI_Quillon_Reclass</span>          <span class="mo">*</span> <span class="mw">0.11</span>) <span class="mo">+</span>
+  (<span class="mv">NDMI_Quillon_Reclass</span>         <span class="mo">*</span> <span class="mw">0.13</span>) <span class="mo">+</span>
+  (<span class="mv">LST_Verano</span>                   <span class="mo">*</span> <span class="mw">0.25</span>)`
+  },
+  {
+    name: 'Modelo C — Enfoque espectral (5 variables)',
+    labels: ['NDMI','MSI','NDVI','Aspect','LST'],
+    weights: [7,5,17,17,54],
+    colors: ['#3498DB','#8E44AD','#1ABC9C','#5D6D7E','#C0392B'],
+    formula:
+`<span class="mt">// MODELO C — Enfoque espectral (5 variables) · Suma = 100%</span>
+<span class="mv">Ignicion_C</span> <span class="mo">=</span>
+  (<span class="mv">NDMI_Quillon_Reclass</span>  <span class="mo">*</span> <span class="mw">0.07</span>) <span class="mo">+</span>
+  (<span class="mv">MSI_Quillon_Reclass</span>   <span class="mo">*</span> <span class="mw">0.05</span>) <span class="mo">+</span>
+  (<span class="mv">NDVI_Quillon_Reclass</span>  <span class="mo">*</span> <span class="mw">0.17</span>) <span class="mo">+</span>
+  (<span class="mv">ASPECT_Reclas_Quillon</span> <span class="mo">*</span> <span class="mw">0.17</span>) <span class="mo">+</span>
+  (<span class="mv">LST_Verano</span>            <span class="mo">*</span> <span class="mw">0.54</span>)`
+  },
+  {
+    name: 'Modelo D — Enfoque antrópico (7 variables)',
+    labels: ['Dist. Urbana','Dist. Caminos','Uso Suelo','NBRI','NDVI','MSI','NDMI'],
+    weights: [18,20,29,10,5,9,9],
+    colors: ['#B03A2E','#E67E22','#27AE60','#D35400','#1ABC9C','#8E44AD','#3498DB'],
+    formula:
+`<span class="mt">// MODELO D — Enfoque antrópico (7 variables) · Suma = 100%</span>
+<span class="mv">Ignicion_D</span> <span class="mo">=</span>
+  (<span class="mv">Distans_Urbano_Rural_Reclass</span> <span class="mo">*</span> <span class="mw">0.18</span>) <span class="mo">+</span>
+  (<span class="mv">Distancia_Camino_Reclass</span>     <span class="mo">*</span> <span class="mw">0.20</span>) <span class="mo">+</span>
+  (<span class="mv">Reclass_USO_Quillon</span>          <span class="mo">*</span> <span class="mw">0.29</span>) <span class="mo">+</span>
+  (<span class="mv">NBRI_Quillon_Reclass</span>         <span class="mo">*</span> <span class="mw">0.10</span>) <span class="mo">+</span>
+  (<span class="mv">NDVI_Quillon_Reclass</span>         <span class="mo">*</span> <span class="mw">0.05</span>) <span class="mo">+</span>
+  (<span class="mv">MSI_Quillon_Reclass</span>          <span class="mo">*</span> <span class="mw">0.09</span>) <span class="mo">+</span>
+  (<span class="mv">NDMI_Quillon_Reclass</span>         <span class="mo">*</span> <span class="mw">0.09</span>)`
+  },
+  {
+    name: 'Modelo Final — Integrado (10 variables)',
+    labels: ['Dist. Interfaz','LST','Dist. Caminos','NDVI','NBRI','MSI','NDMI','Uso Suelo','Slope','Aspect'],
+    weights: [22.5,22.0,11.0,10.0,9.0,9.0,8.0,5.0,3.0,0.5],
+    colors: ['#B03A2E','#C0392B','#E67E22','#1ABC9C','#D35400','#8E44AD','#3498DB','#27AE60','#2E74B5','#5D6D7E'],
+    formula:
+`<span class="mt">// MODELO FINAL — Integrado CLP (10 variables) · Suma = 1.000</span>
+<span class="mv">Potencial_Ignicion</span> <span class="mo">=</span>
+  (<span class="mv">SLOPE_RECLAS</span>                 <span class="mo">*</span> <span class="mw">0.030</span>) <span class="mo">+</span>
+  (<span class="mv">ASPECT_Reclas_Quillon</span>         <span class="mo">*</span> <span class="mw">0.005</span>) <span class="mo">+</span>
+  (<span class="mv">Reclass_USO_Quillon</span>           <span class="mo">*</span> <span class="mw">0.050</span>) <span class="mo">+</span>
+  (<span class="mv">NBRI_Quillon_Reclass</span>          <span class="mo">*</span> <span class="mw">0.090</span>) <span class="mo">+</span>
+  (<span class="mv">NDVI_Quillon_Reclass</span>          <span class="mo">*</span> <span class="mw">0.100</span>) <span class="mo">+</span>
+  (<span class="mv">NDMI_Quillon_Reclass</span>          <span class="mo">*</span> <span class="mw">0.080</span>) <span class="mo">+</span>
+  (<span class="mv">MSI_Quillon_Reclass</span>           <span class="mo">*</span> <span class="mw">0.090</span>) <span class="mo">+</span>
+  (<span class="mv">LST_Verano</span>                    <span class="mo">*</span> <span class="mw">0.220</span>) <span class="mo">+</span>
+  (<span class="mv">Distancia_Camino_Reclass</span>      <span class="mo">*</span> <span class="mw">0.110</span>) <span class="mo">+</span>
+  (<span class="mv">Distans_Urbano_Rural_Reclass</span>  <span class="mo">*</span> <span class="mw">0.225</span>)`
+  }
+];
+
+let currentChart = null;
+
+function showModel(idx) {
+  const m = models[idx];
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+  const ctx = document.getElementById('modelChart').getContext('2d');
+  if (currentChart) currentChart.destroy();
+  currentChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: m.labels,
+      datasets: [{
+        label: 'Peso (%)',
+        data: m.weights,
+        backgroundColor: m.colors,
+        borderColor: m.colors,
+        borderWidth: 1,
+        borderRadius: 5
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: m.name,
+          font: { size: 13, weight: 'bold' },
+          color: '#6B1A1A',
+          padding: { bottom: 10 }
+        },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + '%' } }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          max: 60,
+          ticks: { callback: v => v + '%', font: { size: 11 } },
+          grid: { color: '#F0E8E0' }
+        },
+        y: {
+          ticks: { font: { size: 12 }, color: '#333' },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+  document.getElementById('model-formula').innerHTML = m.formula;
+}
+
+document.addEventListener('DOMContentLoaded', () => showModel(0));
+</script>
+</body>
+</html>
